@@ -122,17 +122,16 @@ func (t *Table) truncateText(text string, maxWidth int) string {
 // getColumnWidths возвращает ширины колонок с учетом настроек
 func (t *Table) getColumnWidths() []int {
 	widths := make([]int, len(t.headers))
-
 	if t.options.MaxWidth > 0 {
-		// Фиксированная максимальная ширина
 		for i := range widths {
-			widths[i] = t.options.MaxWidth
+			// +2 — это по пробелу слева и справа
+			widths[i] = t.options.MaxWidth + 2
 		}
 	} else {
-		// Автоширина
-		copy(widths, t.maxWidths)
+		for i, w := range t.maxWidths {
+			widths[i] = w + 2 // сразу добавляем место для отступов
+		}
 	}
-
 	return widths
 }
 
