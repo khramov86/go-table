@@ -2,7 +2,9 @@ package table
 
 import (
 	"fmt"
-	"unicode/utf8"
+	"strings"
+
+	"github.com/mattn/go-runewidth"
 )
 
 // Table представляет таблицу с заголовками и данными
@@ -15,20 +17,20 @@ type Table struct {
 
 // Options содержит параметры форматирования таблицы
 type Options struct {
-	MaxWidth  int    // Максимальная ширина колонки (0 = автоширина)
-	AutoWidth bool   // Автоширина по самой длинной записи (по умолчанию true)
-	Format    Format // Формат вывода
-	Separator string // Разделитель для CSV (по умолчанию ",")
-	Truncate  string // Символы для обозначения обрезки (по умолчанию "...")
+	MaxWidth   int
+	AutoWidth  bool
+	Format     Format
+	Separator  string
+	Truncate   string
 }
 
 // Format определяет формат вывода таблицы
 type Format int
 
 const (
-	FormatTable    Format = iota // Обычная таблица в stdout
-	FormatCSV                    // CSV формат
-	FormatMarkdown               // Markdown формат
+	FormatTable Format = iota
+	FormatCSV
+	FormatMarkdown
 )
 
 // New создает новую таблицу с заголовками
@@ -44,18 +46,16 @@ func New(headers []string) *Table {
 			Truncate:  "...",
 		},
 	}
-
 	copy(t.headers, headers)
 
-	// Инициализируем максимальные ширины заголовками
+	// ширины по заголовкам c учётом юникода
 	for i, header := range headers {
-		t.maxWidths[i] = utf8.RuneCountInString(header)
+		t.maxWidths[i] = runewidth.StringWidth(header)
 	}
-
 	return t
 }
 
-// SetOptions устанавливает параметры форматирования
+// SetOptions — установка параметров форматирования
 func (t *Table) SetOptions(opts Options) {
 	t.options = opts
 	if t.options.Separator == "" {
@@ -66,31 +66,30 @@ func (t *Table) SetOptions(opts Options) {
 	}
 }
 
-// AddRow добавляет строку данных в таблицу
+// AddRow — добавление строки
 func (t *Table) AddRow(row []string) error {
 	if len(row) != len(t.headers) {
-		return fmt.Errorf("количество колонок в строке (%d) не совпадает с количеством заголовков (%d)", len(row), len(t.headers))
+		return fmt.Errorf("количество колонок в строке (%d) не совпадает с количеством заголовков (%d)",
+			len(row), len(t.headers))
 	}
 
-	// Создаем копию строки
 	newRow := make([]string, len(row))
 	copy(newRow, row)
 	t.rows = append(t.rows, newRow)
 
-	// Обновляем максимальные ширины если включена автоширина
+	// автоширина с учётом эмодзи
 	if t.options.AutoWidth && t.options.MaxWidth == 0 {
 		for i, cell := range row {
-			cellWidth := utf8.RuneCountInString(cell)
+			cellWidth := runewidth.StringWidth(cell)
 			if cellWidth > t.maxWidths[i] {
 				t.maxWidths[i] = cellWidth
 			}
 		}
 	}
-
 	return nil
 }
 
-// AddRows добавляет несколько строк данных
+// AddRows — добавление нескольких строк
 func (t *Table) AddRows(rows [][]string) error {
 	for _, row := range rows {
 		if err := t.AddRow(row); err != nil {
@@ -100,42 +99,39 @@ func (t *Table) AddRows(rows [][]string) error {
 	return nil
 }
 
-// truncateText обрезает текст до указанной ширины
+// truncateText — обрезать текст
 func (t *Table) truncateText(text string, maxWidth int) string {
 	if maxWidth <= 0 {
 		return text
 	}
 
-	runes := []rune(text)
-	if len(runes) <= maxWidth {
+	if runewidth.StringWidth(text) <= maxWidth {
 		return text
 	}
 
-	truncateLen := utf8.RuneCountInString(t.options.Truncate)
-	if maxWidth <= truncateLen {
-		return string(runes[:maxWidth])
+	truncLen := runewidth.StringWidth(t.options.Truncate)
+	if maxWidth <= truncLen {
+		return runewidth.Truncate(text, maxWidth, "")
 	}
-
-	return string(runes[:maxWidth-truncateLen]) + t.options.Truncate
+	return runewidth.Truncate(text, maxWidth, t.options.Truncate)
 }
 
-// getColumnWidths возвращает ширины колонок с учетом настроек
+// getColumnWidths — ширины колонок с учётом +2 пробела
 func (t *Table) getColumnWidths() []int {
 	widths := make([]int, len(t.headers))
 	if t.options.MaxWidth > 0 {
 		for i := range widths {
-			// +2 — это по пробелу слева и справа
 			widths[i] = t.options.MaxWidth + 2
 		}
 	} else {
 		for i, w := range t.maxWidths {
-			widths[i] = w + 2 // сразу добавляем место для отступов
+			widths[i] = w + 2
 		}
 	}
 	return widths
 }
 
-// Render выводит таблицу в соответствии с выбранным форматом
+// Render — вывод в строку
 func (t *Table) Render() string {
 	switch t.options.Format {
 	case FormatCSV:
@@ -147,7 +143,7 @@ func (t *Table) Render() string {
 	}
 }
 
-// Print выводит таблицу в stdout
+// Print — вывод в stdout
 func (t *Table) Print() {
 	fmt.Print(t.Render())
 }
