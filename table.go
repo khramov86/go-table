@@ -2,7 +2,6 @@ package table
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/mattn/go-runewidth"
 )
@@ -17,11 +16,11 @@ type Table struct {
 
 // Options содержит параметры форматирования таблицы
 type Options struct {
-	MaxWidth   int
-	AutoWidth  bool
-	Format     Format
-	Separator  string
-	Truncate   string
+	MaxWidth  int
+	AutoWidth bool
+	Format    Format
+	Separator string
+	Truncate  string
 }
 
 // Format определяет формат вывода таблицы
