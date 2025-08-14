@@ -146,3 +146,13 @@ func (t *Table) Render() string {
 func (t *Table) Print() {
 	fmt.Print(t.Render())
 }
+
+// AddRows — добавление нескольких строк за один вызов
+func (t *Table) AddRows(rows [][]string) error {
+	for _, row := range rows {
+		if err := t.AddRow(row); err != nil {
+			return err
+		}
+	}
+	return nil
+}

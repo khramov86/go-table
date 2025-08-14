@@ -41,6 +41,21 @@ func main() {
 }
 ```
 
+Или сразу матрицу
+
+```
+t := table.New([]string{"ID", "Имя", "Email"})
+
+// Добавляем одну строку
+t.AddRow([]string{"1", "Иван", "ivan@example.com"})
+
+// Добавляем сразу несколько
+t.AddRows([][]string{
+    {"2", "Мария", "maria@example.com"},
+    {"3", "Алексей", "alexey@host.com"},
+})
+```
+
 ### Настройки форматирования
 
 ```
