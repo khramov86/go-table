@@ -153,4 +153,21 @@ func (t *Table) renderRow(row []string, widths []int) string {
 	return result.String()
 }
 
-// padRight дополняет строку пробелами справ
+// padRight дополняет строку пробелами справа до указанной ширины
+func (t *Table) padRight(text string, width int) string {
+	textWidth := len([]rune(text))
+	if textWidth >= width {
+		return text
+	}
+	return text + strings.Repeat(" ", width-textWidth)
+}
+
+// escapeCSV экранирует специальные символы в CSV
+func (t *Table) escapeCSV(text string) string {
+	if strings.Contains(text, t.options.Separator) ||
+		strings.Contains(text, "\"") ||
+		strings.Contains(text, "\n") {
+		return "\"" + strings.ReplaceAll(text, "\"", "\"\"") + "\""
+	}
+	return text
+}
