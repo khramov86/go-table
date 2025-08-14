@@ -2,9 +2,11 @@ package table
 
 import (
 	"strings"
+
+	"github.com/mattn/go-runewidth"
 )
 
-// renderTable рендерит таблицу в обычном формате
+// renderTable — красивая таблица
 func (t *Table) renderTable() string {
 	if len(t.headers) == 0 {
 		return ""
@@ -13,35 +15,21 @@ func (t *Table) renderTable() string {
 	widths := t.getColumnWidths()
 	var result strings.Builder
 
-	// Рендерим верхнюю границу
 	result.WriteString(t.renderBorder(widths, "┌", "┬", "┐"))
-
-	// Рендерим заголовки
 	result.WriteString(t.renderRow(t.headers, widths))
-
-	// Рендерим разделитель заголовков
 	result.WriteString(t.renderBorder(widths, "├", "┼", "┤"))
-
-	// Рендерим данные
 	for _, row := range t.rows {
 		result.WriteString(t.renderRow(row, widths))
 	}
-
-	// Рендерим нижнюю границу
 	result.WriteString(t.renderBorder(widths, "└", "┴", "┘"))
 
 	return result.String()
 }
 
-// renderCSV рендерит таблицу в CSV формате
+// renderCSV — простой CSV
 func (t *Table) renderCSV() string {
-	if len(t.headers) == 0 {
-		return ""
-	}
-
 	var result strings.Builder
 
-	// Заголовки
 	for i, header := range t.headers {
 		if i > 0 {
 			result.WriteString(t.options.Separator)
@@ -50,18 +38,15 @@ func (t *Table) renderCSV() string {
 	}
 	result.WriteString("\n")
 
-	// Данные
 	for _, row := range t.rows {
 		for i, cell := range row {
 			if i > 0 {
 				result.WriteString(t.options.Separator)
 			}
-
 			cellText := cell
 			if t.options.MaxWidth > 0 {
 				cellText = t.truncateText(cell, t.options.MaxWidth)
 			}
-
 			result.WriteString(t.escapeCSV(cellText))
 		}
 		result.WriteString("\n")
@@ -70,35 +55,24 @@ func (t *Table) renderCSV() string {
 	return result.String()
 }
 
-// renderMarkdown рендерит таблицу в Markdown формате
+// renderMarkdown — markdown таблица
 func (t *Table) renderMarkdown() string {
-	if len(t.headers) == 0 {
-		return ""
-	}
-
 	var result strings.Builder
 
-	// Заголовки
 	result.WriteString("|")
 	for _, header := range t.headers {
 		headerText := header
 		if t.options.MaxWidth > 0 {
 			headerText = t.truncateText(header, t.options.MaxWidth)
 		}
-		result.WriteString(" ")
-		result.WriteString(headerText)
-		result.WriteString(" |")
+		result.WriteString(" " + headerText + " |")
 	}
-	result.WriteString("\n")
-
-	// Разделитель
-	result.WriteString("|")
+	result.WriteString("\n|")
 	for range t.headers {
 		result.WriteString("---|")
 	}
 	result.WriteString("\n")
 
-	// Данные
 	for _, row := range t.rows {
 		result.WriteString("|")
 		for _, cell := range row {
@@ -106,9 +80,7 @@ func (t *Table) renderMarkdown() string {
 			if t.options.MaxWidth > 0 {
 				cellText = t.truncateText(cell, t.options.MaxWidth)
 			}
-			result.WriteString(" ")
-			result.WriteString(cellText)
-			result.WriteString(" |")
+			result.WriteString(" " + cellText + " |")
 		}
 		result.WriteString("\n")
 	}
@@ -116,53 +88,47 @@ func (t *Table) renderMarkdown() string {
 	return result.String()
 }
 
-// renderBorder рендерит границу таблицы
+// renderBorder — линии таблицы
 func (t *Table) renderBorder(widths []int, left, middle, right string) string {
 	var result strings.Builder
-
 	result.WriteString(left)
 	for i, width := range widths {
 		if i > 0 {
 			result.WriteString(middle)
 		}
-		result.WriteString(strings.Repeat("─", width+2)) // +2 для отступов
+		result.WriteString(strings.Repeat("─", width))
 	}
-	result.WriteString(right)
-	result.WriteString("\n")
-
+	result.WriteString(right + "\n")
 	return result.String()
 }
 
-// renderRow рендерит строку таблицы
+// renderRow — рендер строки
 func (t *Table) renderRow(row []string, widths []int) string {
 	var result strings.Builder
-
 	result.WriteString("│")
 	for i, cell := range row {
 		cellText := cell
 		if t.options.MaxWidth > 0 {
 			cellText = t.truncateText(cell, t.options.MaxWidth)
 		}
-
-		result.WriteString(" ")
-		result.WriteString(t.padRight(cellText, widths[i]))
-		result.WriteString(" │")
+		contentWidth := widths[i] - 2
+		padded := t.padRight(cellText, contentWidth)
+		result.WriteString(" " + padded + " │")
 	}
 	result.WriteString("\n")
-
 	return result.String()
 }
 
-// padRight дополняет строку пробелами справа до указанной ширины
+// padRight с учётом юникода
 func (t *Table) padRight(text string, width int) string {
-	textWidth := len([]rune(text))
+	textWidth := runewidth.StringWidth(text)
 	if textWidth >= width {
 		return text
 	}
 	return text + strings.Repeat(" ", width-textWidth)
 }
 
-// escapeCSV экранирует специальные символы в CSV
+// escapeCSV
 func (t *Table) escapeCSV(text string) string {
 	if strings.Contains(text, t.options.Separator) ||
 		strings.Contains(text, "\"") ||

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	table "github.com/vkhramov/go-table"
+	table "github.com/khramov86/go-table"
 )
 
 func main() {
